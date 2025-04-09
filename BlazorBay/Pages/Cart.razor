@@ -1,0 +1,34 @@
+﻿@page "/cart"
+
+<h3 class="mb-3">Your Cart</h3>
+
+@if (!CartService.Items.Any())
+{
+    <div class="alert alert-info">Your cart is empty.</div>
+}
+else
+{
+    <ul class="list-group mb-3">
+        @foreach (var item in CartService.Items)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>@item.Name</strong> - @item.Price.ToString("C")
+                </div>
+                <button class="btn btn-sm btn-danger" @onclick="() => Remove(item)">Remove</button>
+            </li>
+        }
+    </ul>
+    <h5 class="fw-bold">Total: @CartService.GetTotal().ToString("C")</h5>
+}
+
+@code {
+    [Inject] public IJSRuntime JS { get; set; }
+    [CascadingParameter] public CartService CartService { get; set; }
+
+    private async Task Remove(Product item)
+    {
+        CartService.RemoveFromCart(item);
+        await JS.InvokeVoidAsync("cartNotification", $"{item.Name} removed from your cart!", "danger");
+    }
+}

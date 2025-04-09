@@ -1,0 +1,86 @@
+﻿@page "/admin/products"
+
+<h3 class="mb-4">Manage Products</h3>
+
+<EditForm Model="editProduct" OnValidSubmit="Save">
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <InputText @bind-Value="editProduct.Name" class="form-control" placeholder="Product Name" />
+        </div>
+        <div class="col">
+            <InputNumber @bind-Value="editProduct.Price" class="form-control" placeholder="Price" />
+        </div>
+        <div class="col">
+            <InputText @bind-Value="editProduct.ImageUrl" class="form-control" placeholder="Image URL" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-success">Save</button>
+        </div>
+    </div>
+</EditForm>
+
+<ul class="list-group">
+    @foreach (var p in products)
+    {
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>@p.Name</span>
+            <div>
+                <button class="btn btn-sm btn-primary me-2" @onclick="() => Edit(p)">Edit</button>
+                <button class="btn btn-sm btn-danger" @onclick="() => Delete(p)">Delete</button>
+            </div>
+        </li>
+    }
+</ul>
+
+
+@code {
+    [Inject] public AppDbContext Db { get; set; }
+    List<BlazorBay.Models.Product> products = new();
+    BlazorBay.Models.Product editProduct = new();
+
+    protected override void OnInitialized()
+    {
+        products = Db.Products.ToList();
+    }
+
+    void Save()
+    {
+        if (editProduct.Id == 0)
+        {
+            Db.Products.Add(editProduct);
+        }
+        else
+        {
+            var trackedProduct = Db.Products.FirstOrDefault(p => p.Id == editProduct.Id);
+
+            if (trackedProduct is not null)
+            {
+                trackedProduct.Name = editProduct.Name;
+                trackedProduct.Price = editProduct.Price;
+                trackedProduct.ImageUrl = editProduct.ImageUrl;
+            }
+        }
+
+        Db.SaveChanges();
+        products = Db.Products.ToList();
+        editProduct = new();
+    }
+
+    void Edit(BlazorBay.Models.Product p)
+    {
+        editProduct = new BlazorBay.Models.Product
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Price = p.Price,
+            ImageUrl = p.ImageUrl
+        };
+    }
+
+    void Delete(BlazorBay.Models.Product p)
+    {
+        Db.Products.Remove(p);
+        Db.SaveChanges();
+        products = Db.Products.ToList();
+    }
+}

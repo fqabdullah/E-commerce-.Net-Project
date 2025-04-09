@@ -1,0 +1,21 @@
+﻿@page "/"
+
+@code {
+    [Inject] public AppDbContext Db { get; set; }
+    private List<BlazorBay.Models.Product> products = new();
+
+    protected override void OnInitialized()
+    {
+        products = Db.Products.ToList();
+    }
+}
+
+<h3 class="mb-4">Products</h3>
+<div class="row">
+    @foreach (var product in products)
+    {
+        <div class="col-md-3 mb-3">
+            <ProductCard Product="product" />
+        </div>
+    }
+</div>
