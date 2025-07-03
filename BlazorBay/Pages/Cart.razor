@@ -1,4 +1,8 @@
 ﻿@page "/cart"
+@using BlazorBay.Models
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject CartService CartService
 
 <h3 class="mb-3">Your Cart</h3>
 
@@ -19,16 +23,23 @@ else
             </li>
         }
     </ul>
+
     <h5 class="fw-bold">Total: @CartService.GetTotal().ToString("C")</h5>
+
+    <div class="mt-3">
+        <button class="btn btn-success" @onclick="GoToCheckout">Proceed to Checkout</button>
+    </div>
 }
 
 @code {
-    [Inject] public IJSRuntime JS { get; set; }
-    [CascadingParameter] public CartService CartService { get; set; }
-
     private async Task Remove(Product item)
     {
         CartService.RemoveFromCart(item);
-        await JS.InvokeVoidAsync("cartNotification", $"{item.Name} removed from your cart!", "danger");
+        await JS.InvokeVoidAsync("alert", $"{item.Name} removed from your cart.");
+    }
+
+    private void GoToCheckout()
+    {
+        Nav.NavigateTo("/checkout");
     }
 }

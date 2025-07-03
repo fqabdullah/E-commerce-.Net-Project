@@ -1,19 +1,48 @@
-using Microsoft.EntityFrameworkCore;
 using BlazorBay.Data;
 using BlazorBay.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// -----------------------------
+// Services Configuration
+// -----------------------------
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=products.db"));
-builder.Services.AddSingleton<CartService>();
 
+// Database Context
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Custom Services
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<ToastService>();
+
+// Authentication & Authorization
+builder.Services.AddScoped<CustomAuthProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
+    provider.GetRequiredService<CustomAuthProvider>());
+
+builder.Services.AddSingleton<OrderStatusService>();
+
+builder.Services.AddAuthorizationCore(); // For [AuthorizeView] etc.
+
+// -----------------------------
+// Build the App
+// -----------------------------
 var app = builder.Build();
 
-// Configure middleware
+// -----------------------------
+// Middleware Pipeline
+// -----------------------------
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
 app.UseStaticFiles();
 app.UseRouting();
 

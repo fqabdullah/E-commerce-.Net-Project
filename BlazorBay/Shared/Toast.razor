@@ -1,0 +1,45 @@
+﻿@inject ToastService ToastService
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+        <div class="toast align-items-center text-white bg-@toastType show">
+            <div class="d-flex">
+                <div class="toast-body">
+                    @message
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="HideToast"></button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string message = "";
+    private string toastType = "success";
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+
+    private void ShowToast(string type, string msg)
+    {
+        toastType = type;
+        message = msg;
+        StateHasChanged();
+
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            message = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void HideToast() => message = "";
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= ShowToast;
+    }
+}

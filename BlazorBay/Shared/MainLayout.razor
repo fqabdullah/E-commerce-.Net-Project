@@ -1,8 +1,46 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="main">
+<!-- Top Center Logo with grey gradient -->
+<div class="logo-header text-center py-3 shadow-sm" style="background: linear-gradient(to right, #333333, #dddddd);">
+    <img src="images/logo.png" alt="BlazorBay Logo" />
+</div>
+
+<!-- Main Content -->
+<div class="main d-flex flex-column min-vh-100">
     <NavMenu />
-    <div class="content px-4">
+    <Toast />
+    <div class="content flex-fill px-4">
         @Body
     </div>
+
+    <!-- Footer Logo -->
+    <footer class="footer bg-dark text-light text-center py-3 mt-auto">
+        <img src="images/logo.png" alt="BlazorBay Logo" />
+        <div>© 2025 eShop. All rights reserved.</div>
+    </footer>
 </div>
+
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+    }
+
+    .main {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    .content {
+        flex: 1;
+    }
+
+    .logo-header img {
+        max-height: 70px;
+    }
+
+    .footer img {
+        max-height: 40px;
+    }
+</style>

@@ -1,0 +1,87 @@
+﻿@page "/register"
+@using BlazorBay.Models
+@using System.ComponentModel.DataAnnotations
+@inject AuthService AuthService
+@inject NavigationManager Nav
+@inject CustomAuthProvider AuthProvider
+@inject AppDbContext Db
+
+<h3>Register</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<EditForm Model="user" OnValidSubmit="HandleRegister">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-2">
+        <label class="form-label">Username</label>
+        <InputText class="form-control" @bind-Value="user.Username" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Email</label>
+        <InputText class="form-control" @bind-Value="user.Email" type="email" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Password</label>
+        <InputText class="form-control" @bind-Value="user.PasswordHash" type="password" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Role</label>
+        <InputSelect class="form-select" @bind-Value="user.Role">
+            <option value="">-- Select Role --</option>
+            <option value="Customer">Customer</option>
+            <option value="Admin">Admin</option>
+        </InputSelect>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Register</button>
+</EditForm>
+
+@code {
+    private User user = new();
+    private string errorMessage = string.Empty;
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(user.Role))
+            {
+                errorMessage = "Please select a role.";
+                return;
+            }
+
+            var exists = Db.Users.Any(u => u.Email.ToLower() == user.Email.ToLower().Trim());
+            if (exists)
+            {
+                errorMessage = "Email already exists. Try another one.";
+                return;
+            }
+
+            // No hashing here
+            user.Email = user.Email?.Trim().ToLower();
+
+            Db.Users.Add(user);
+            await Db.SaveChangesAsync();
+
+            AuthProvider.SetUser(user);
+
+            if (user.Role == "Admin")
+                Nav.NavigateTo("/admin/dashboard");
+            else
+                Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred during registration.";
+            Console.Error.WriteLine(ex);
+        }
+    }
+}

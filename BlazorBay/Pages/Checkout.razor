@@ -1,0 +1,81 @@
+﻿@page "/checkout"
+@inject CartService CartService
+@inject AppDbContext Db
+@inject NavigationManager Nav
+@using BlazorBay.Models
+
+<h3>Checkout</h3>
+
+@if (showSuccess)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+        <div class="toast show align-items-center text-white bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ✅ Your order has been placed successfully!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        @onclick="() => showSuccess = false" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button class="btn btn-primary" @onclick="GoToProducts">Continue Shopping</button>
+    </div>
+}
+else
+{
+    <EditForm Model="order" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-2">
+            <label>Name</label>
+            <InputText class="form-control" @bind-Value="order.CustomerName" />
+        </div>
+
+        <div class="mb-2">
+            <label>Contact Number</label>
+            <InputText class="form-control" @bind-Value="order.ContactNumber" />
+        </div>
+
+        <div class="mb-2">
+            <label>Address</label>
+            <InputTextArea class="form-control" @bind-Value="order.Address" />
+        </div>
+
+        <div class="mb-2">
+            <label>Payment Method</label>
+            <InputSelect class="form-select" @bind-Value="order.PaymentMethod">
+                <option value="">-- Select --</option>
+                <option value="Cash">Cash</option>
+                <option value="Online">Online</option>
+            </InputSelect>
+        </div>
+
+        <button class="btn btn-success">Submit Order</button>
+    </EditForm>
+}
+
+@code {
+    private Order order = new();
+    private bool showSuccess = false;
+
+    private async Task HandleSubmit()
+    {
+        order.TotalAmount = CartService.GetTotal();
+        order.OrderedProducts = string.Join(", ", CartService.Items.Select(p => p.Name));
+
+        Db.Orders.Add(order);
+        await Db.SaveChangesAsync();
+
+        CartService.Clear();
+        showSuccess = true;
+    }
+
+    private void GoToProducts()
+    {
+        Nav.NavigateTo("/"); // Change this route if your Products page has a different path
+    }
+}

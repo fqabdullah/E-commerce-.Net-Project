@@ -1,0 +1,11 @@
+﻿@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+
+<h3>Admin Dashboard</h3>
+<p>Welcome, Admin! Manage your store here.</p>
+
+<ul>
+    <li><a href="/admin/products">Manage Products</a></li>
+    <li><a href="/admin/orders">View Orders</a></li>
+    <!-- Add more sections if needed -->
+</ul>

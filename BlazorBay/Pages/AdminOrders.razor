@@ -1,0 +1,185 @@
+﻿@page "/admin/orders"
+@inject AppDbContext Db
+@inject OrderStatusService StatusService
+
+<h3>All Orders</h3>
+
+<div class="row mb-3">
+    <div class="col">
+        <input type="text" class="form-control" placeholder="Search by Customer Name" @bind="SearchName" />
+    </div>
+    <div class="col">
+        <input type="text" class="form-control" placeholder="Search by Product Name" @bind="SearchProduct" />
+    </div>
+    <div class="col">
+        <select class="form-select" @bind="SelectedPaymentMethod">
+            <option value="">All Payments</option>
+            <option value="Cash">Cash</option>
+            <option value="Online">Online</option>
+        </select>
+    </div>
+    <div class="col">
+        <select class="form-select" @bind="SelectedStatus">
+            <option value="">All Statuses</option>
+            <option>Pending</option>
+            <option>Delivered</option>
+            <option>Cancelled</option>
+        </select>
+    </div>
+    <div class="col">
+        <select class="form-select" @bind="SortBy">
+            <option value="">Sort by</option>
+            <option value="recent">Most Recent</option>
+            <option value="highAmount">Highest Amount</option>
+            <option value="nameAsc">Customer Name A-Z</option>
+            <option value="nameDesc">Customer Name Z-A</option>
+        </select>
+    </div>
+</div>
+
+@if (FilteredOrders == null)
+{
+    <p>Loading...</p>
+}
+else if (!FilteredOrders.Any())
+{
+    <div class="alert alert-info">No orders found.</div>
+}
+else
+{
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Customer</th>
+                <th>Contact</th>
+                <th>Address</th>
+                <th>Payment</th>
+                <th>Total</th>
+                <th>Products</th>
+                <th>Order Time</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in FilteredOrders)
+            {
+                var currentStatus = StatusService.GetStatus(order.Id);
+                var badgeClass = currentStatus switch
+                {
+                    "Delivered" => "bg-success",
+                    "Cancelled" => "bg-danger",
+                    _ => "bg-warning"
+                };
+
+                <tr>
+                    <td>@order.Id</td>
+                    <td>@order.CustomerName</td>
+                    <td>@order.ContactNumber</td>
+                    <td>@order.Address</td>
+                    <td>@order.PaymentMethod</td>
+                    <td>@order.TotalAmount.ToString("C")</td>
+                    <td>@order.OrderedProducts</td>
+                    <td>@order.OrderDate.ToString("g")</td>
+                    <td><span class="badge @badgeClass">@currentStatus</span></td>
+                    <td>
+                        <select class="form-select" @onchange="e => ChangeStatus(order.Id, e.Value?.ToString())">
+                            <option disabled selected>@currentStatus</option>
+                            <option>Pending</option>
+                            <option>Delivered</option>
+                            <option>Cancelled</option>
+                        </select>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Order> AllOrders = new();
+    private List<Order> FilteredOrders = new();
+
+    private string _searchName = string.Empty;
+    private string SearchName
+    {
+        get => _searchName;
+        set { _searchName = value; ApplyFilters(); }
+    }
+
+    private string _searchProduct = string.Empty;
+    private string SearchProduct
+    {
+        get => _searchProduct;
+        set { _searchProduct = value; ApplyFilters(); }
+    }
+
+    private string _selectedPaymentMethod = string.Empty;
+    private string SelectedPaymentMethod
+    {
+        get => _selectedPaymentMethod;
+        set { _selectedPaymentMethod = value; ApplyFilters(); }
+    }
+
+    private string _selectedStatus = string.Empty;
+    private string SelectedStatus
+    {
+        get => _selectedStatus;
+        set { _selectedStatus = value; ApplyFilters(); }
+    }
+
+    private string _sortBy = string.Empty;
+    private string SortBy
+    {
+        get => _sortBy;
+        set { _sortBy = value; ApplyFilters(); }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AllOrders = await Task.Run(() => Db.Orders.OrderByDescending(o => o.Id).ToList());
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        FilteredOrders = AllOrders
+            .Where(o => string.IsNullOrWhiteSpace(SearchName) || o.CustomerName.Contains(SearchName, StringComparison.OrdinalIgnoreCase))
+            .Where(o => string.IsNullOrWhiteSpace(SearchProduct) || o.OrderedProducts.Contains(SearchProduct, StringComparison.OrdinalIgnoreCase))
+            .Where(o => string.IsNullOrWhiteSpace(SelectedPaymentMethod) || o.PaymentMethod == SelectedPaymentMethod)
+            .Where(o => string.IsNullOrWhiteSpace(SelectedStatus) || StatusService.GetStatus(o.Id) == SelectedStatus)
+            .ToList();
+
+        switch (SortBy)
+        {
+            case "recent":
+                FilteredOrders = FilteredOrders.OrderByDescending(o => o.Id).ToList();
+                break;
+            case "highAmount":
+                FilteredOrders = FilteredOrders.OrderByDescending(o => o.TotalAmount).ToList();
+                break;
+            case "nameAsc":
+                FilteredOrders = FilteredOrders.OrderBy(o => o.CustomerName).ToList();
+                break;
+            case "nameDesc":
+                FilteredOrders = FilteredOrders.OrderByDescending(o => o.CustomerName).ToList();
+                break;
+            case "productAsc":
+                FilteredOrders = FilteredOrders.OrderBy(o => o.OrderedProducts).ToList();
+                break;
+            case "productDesc":
+                FilteredOrders = FilteredOrders.OrderByDescending(o => o.OrderedProducts).ToList();
+                break;
+        }
+    }
+
+    private void ChangeStatus(int orderId, string newStatus)
+    {
+        if (!string.IsNullOrWhiteSpace(newStatus))
+        {
+            StatusService.UpdateStatus(orderId, newStatus);
+            StateHasChanged(); // Refresh UI
+        }
+    }
+}

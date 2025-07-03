@@ -1,4 +1,6 @@
 ﻿@page "/admin/products"
+@inject ToastService ToastService
+@attribute [Authorize(Roles = "Admin")]
 
 <h3 class="mb-4">Manage Products</h3>
 
@@ -32,7 +34,6 @@
     }
 </ul>
 
-
 @code {
     [Inject] public AppDbContext Db { get; set; }
     List<BlazorBay.Models.Product> products = new();
@@ -64,6 +65,7 @@
         Db.SaveChanges();
         products = Db.Products.ToList();
         editProduct = new();
+        ToastService.ShowSuccess("Product saved successfully.");
     }
 
     void Edit(BlazorBay.Models.Product p)
@@ -82,5 +84,6 @@
         Db.Products.Remove(p);
         Db.SaveChanges();
         products = Db.Products.ToList();
+        ToastService.ShowSuccess("Product deleted.");
     }
 }

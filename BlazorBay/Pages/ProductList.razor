@@ -1,21 +1,43 @@
 ﻿@page "/"
 
-@code {
-    [Inject] public AppDbContext Db { get; set; }
-    private List<BlazorBay.Models.Product> products = new();
-
-    protected override void OnInitialized()
-    {
-        products = Db.Products.ToList();
-    }
-}
+@using BlazorBay.Models
+@inject AppDbContext Db
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize]
 
 <h3 class="mb-4">Products</h3>
-<div class="row">
-    @foreach (var product in products)
+
+@if (products == null)
+{
+    <p>Loading...</p>
+}
+else if (!products.Any())
+{
+    <p>No products available.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var product in products)
+        {
+            <div class="col-md-3 mb-3">
+                <ProductCard Product="product" IsAdmin="isAdmin" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Product> products = new();
+    private bool isAdmin = false;
+
+    protected override async Task OnInitializedAsync()
     {
-        <div class="col-md-3 mb-3">
-            <ProductCard Product="product" />
-        </div>
+        products = Db.Products.ToList();
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        isAdmin = user.IsInRole("Admin");
     }
-</div>
+}

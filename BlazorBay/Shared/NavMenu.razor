@@ -1,49 +1,107 @@
-﻿<nav class="navbar navbar-dark bg-dark px-4">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject CustomAuthProvider AuthProvider
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<nav class="navbar navbar-dark bg-dark px-4">
     <div class="container-fluid d-flex justify-content-between align-items-center">
-        
+
         <!-- Left Nav Links -->
-        <div class="d-flex gap-4">
+        <div class="d-flex gap-4 align-items-center">
             <NavLink class="nav-link text-light" href="/" Match="NavLinkMatch.All" ActiveClass="text-white fw-bold">
                 Products
             </NavLink>
-            <NavLink class="nav-link text-light" href="/admin/products" ActiveClass="text-white fw-bold">
-                Admin
-            </NavLink>
+
+            <AuthorizeView Roles="Admin">
+                <NavLink class="nav-link text-light" href="/admin/products" ActiveClass="text-white fw-bold">
+                    Admin
+                </NavLink>
+                <NavLink class="nav-link text-light" href="/admin/orders" ActiveClass="text-white fw-bold">
+                    View Orders
+                </NavLink>
+            </AuthorizeView>
         </div>
 
-        <!-- Cart Icon Right -->
-        <div class="position-relative">
-            <NavLink class="nav-link text-light d-flex align-items-center" href="/cart">
-                <i class="bi bi-cart4 fs-5 me-1 cart-icon @(cartBump ? "cart-bump" : "")"></i>
-                <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
-                    @CartService.Items.Count
-                </span>
-            </NavLink>
-        </div>
+        <!-- Right Section: Cart + Auth -->
+        <div class="d-flex align-items-center gap-4">
 
+            <!-- Cart Icon -->
+            <div class="position-relative">
+                <NavLink class="nav-link text-light d-flex align-items-center" href="/cart">
+                    <i class="bi bi-cart4 fs-5 me-1 cart-icon @(cartBump ? "cart-bump" : "")"></i>
+                    <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
+                        @CartService?.Items.Count
+                    </span>
+                </NavLink>
+            </div>
+
+            <!-- Auth Section -->
+            <AuthorizeView>
+                <Authorized>
+                    <div class="text-light d-flex align-items-center gap-2">
+                        <span>@context.User.Identity?.Name</span>
+                        <a href="#" class="text-warning" @onclick="Logout">Logout</a>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div class="d-flex gap-2">
+                        <a class="text-light" href="/login">Login</a>
+                        <span class="text-light">|</span>
+                        <a class="text-light" href="/register">Register</a>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+
+        </div>
     </div>
 </nav>
 
 @code {
     [CascadingParameter] public CartService CartService { get; set; }
+
     private bool cartBump;
+    private bool _disposed;
 
     protected override void OnInitialized()
     {
-        CartService.OnChange += TriggerBump;
+        if (CartService != null)
+        {
+            CartService.OnChange += TriggerBump;
+        }
     }
 
     private async void TriggerBump()
     {
+        if (_disposed) return;
+
         cartBump = true;
-        await InvokeAsync(StateHasChanged);
-        await Task.Delay(600);
-        cartBump = false;
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(600);
+            cartBump = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Component already disposed, ignore
+        }
     }
 
     public void Dispose()
     {
-        CartService.OnChange -= TriggerBump;
+        _disposed = true;
+        if (CartService != null)
+        {
+            CartService.OnChange -= TriggerBump;
+        }
+    }
+
+    private void Logout()
+    {
+        AuthProvider.Logout();
+        Nav.NavigateTo("/login", forceLoad: true); // force circuit reload
     }
 }
+
+@implements IDisposable
